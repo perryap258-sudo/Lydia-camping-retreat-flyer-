@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lydia's Camping Retreat 2026 - I Will Be Attending</title>
+<style>
+body{margin:0;background:#2a0a5e;font-family:system-ui,sans-serif;color:#fff;text-align:center;padding:12px}
+canvas{width:100%;max-width:520px;height:auto;border-radius:10px;box-shadow:0 4px 20px #0008;touch-action:manipulation}
+.btns{display:flex;gap:10px;justify-content:center;margin:14px auto;max-width:520px}
+button{flex:1;padding:14px;border:0;border-radius:10px;font-size:16px;font-weight:700;background:#e91e8c;color:#fff}
+button.alt{background:#fff;color:#3a0ca3}
+.wrap{position:relative;max-width:520px;margin:0 auto}
+#f{position:absolute;left:28.03%;top:34.47%;width:43.95%;height:36.43%;opacity:0;cursor:pointer;font-size:0}
+#nb{position:absolute;left:28.03%;top:71.58%;width:43.95%;height:4.69%}
+#n{display:block;width:100%;max-width:520px;box-sizing:border-box;margin:12px auto 0;padding:14px;font-size:16px;font-weight:600;text-align:center;border:0;border-radius:10px}
+#pan{position:absolute;left:28.03%;top:34.47%;width:43.95%;height:36.43%;touch-action:none;display:none}
+.zoom{display:none;align-items:center;gap:10px;max-width:520px;margin:12px auto 0}
+.zoom button{flex:0 0 52px;padding:10px}
+.zoom input{flex:1}
+#cp{display:none;max-width:520px;margin:10px auto 0;padding:12px;border-radius:10px;border:2px solid #fff;font-weight:700;box-sizing:border-box}
+p{margin:6px;font-size:14px;opacity:.85}
+</style></head><body>
+<div class="wrap"><canvas id="c" width="1024" height="1024"></canvas><input type="file" id="f" accept="image/*"><div id="pan"></div><div id="nb"></div></div>
+<input id="n" type="text" maxlength="30" placeholder="Type your name here" autocomplete="name">
+<div class="zoom" id="zm"><button class="alt" id="zo">&minus;</button><input type="range" id="zr" min="0.5" max="3" step="0.01" value="1"><button class="alt" id="zi">+</button></div>
+<label id="cp" for="f">Change photo</label>
+<p id="tip">Tap the white box to add your photo</p>
+<div class="btns">
+  <button id="dl">Download flyer</button>
+  <button id="sh" class="alt">Share / Save</button>
+</div>
+<p style="font-size:12px;opacity:.6;margin-top:18px">Version 5 (zoom + move)</p>
+<script>
+const FLYER_SRC="flyer.jpg"
+const BOX={x:287,y:353,w:450,h:373};
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+const f=document.getElementById('f');
+let flyer=new Image(),photo=null,zoom=1,offX=0,offY=0;
+
+function draw(exporting){drawBase(exporting);drawName(exporting)}
+function drawName(exporting){
+  const name=document.getElementById('n').value.trim();
+  const w=420;let size=34;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  const txt=name||(exporting?'':'Type your name');
+  if(!txt){ctx.textBaseline='alphabetic';return}
+  do{ctx.font='bold '+size+'px Arial,sans-serif';size--}while(ctx.measureText(txt).width>w&&size>12);
+  ctx.fillStyle=name?'#3a0ca3':'#aaa';
+  ctx.fillText(txt,512,758);
+  ctx.textBaseline='alphabetic';
+}
+function drawBase(exporting){
+  ctx.drawImage(flyer,0,0,1024,1024);
+  if(photo){
+    const s=Math.max(BOX.w/photo.width,BOX.h/photo.height)*zoom;
+    const w=photo.width*s,h=photo.height*s;
+    ctx.save();
+    ctx.beginPath();ctx.rect(BOX.x,BOX.y,BOX.w,BOX.h);ctx.clip();
+    ctx.drawImage(photo,BOX.x+(BOX.w-w)/2+offX,BOX.y+(BOX.h-h)/2+offY,w,h);
+    ctx.restore();
+  }else if(!exporting){
+    ctx.fillStyle='#fff';ctx.fillRect(BOX.x,BOX.y,BOX.w,BOX.h);
+    ctx.setLineDash([12,8]);ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.strokeRect(BOX.x,BOX.y,BOX.w,BOX.h);ctx.setLineDash([]);ctx.fillStyle='#6a1b9a';ctx.textAlign='center';ctx.font='bold 34px sans-serif';
+    ctx.fillText('+ Tap to add photo',BOX.x+BOX.w/2,BOX.y+BOX.h/2+12);
+  }
+}
+flyer.onload=()=>draw(false);
+document.getElementById('n').addEventListener('input',()=>draw(false));
+document.getElementById('nb').onclick=()=>document.getElementById('n').focus();
+flyer.onerror=()=>alert('flyer.jpg not found. Upload it next to index.html');
+flyer.src=FLYER_SRC;
+
+f.addEventListener('change',()=>{
+  const file=f.files[0]; if(!file) return;
+  const img=new Image();
+  img.onload=()=>{photo=img;zoom=1;offX=offY=0;zr.value=1;showCtl();draw(false);URL.revokeObjectURL(img.src)};
+  img.src=URL.createObjectURL(file);f.value='';
+});
+
+const zr=document.getElementById('zr'),pan=document.getElementById('pan');
+function showCtl(){
+  document.getElementById('zm').style.display='flex';
+  document.getElementById('cp').style.display='block';
+  pan.style.display='block';f.style.pointerEvents='none';
+  document.getElementById('tip').textContent='Drag the photo to move it. Pinch or use the slider to zoom.';
+}
+function setZoom(z){zoom=Math.min(3,Math.max(0.5,z));zr.value=zoom;draw(false)}
+zr.addEventListener('input',()=>setZoom(+zr.value));
+document.getElementById('zi').onclick=()=>setZoom(zoom+0.1);
+document.getElementById('zo').onclick=()=>setZoom(zoom-0.1);
+function clampOff(){offX=Math.max(-BOX.w*.75,Math.min(BOX.w*.75,offX));offY=Math.max(-BOX.h*.75,Math.min(BOX.h*.75,offY))}
+const pts=new Map();let lastD=0;
+pan.addEventListener('pointerdown',e=>{pan.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});lastD=0});
+pan.addEventListener('pointermove',e=>{
+  const p=pts.get(e.pointerId);if(!p)return;
+  const k=1024/c.getBoundingClientRect().width;
+  if(pts.size===1){offX+=(e.clientX-p.x)*k;offY+=(e.clientY-p.y)*k}
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pts.size===2){const [a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(lastD)zoom=Math.min(3,Math.max(0.5,zoom*d/lastD));zr.value=zoom;lastD=d}
+  clampOff();draw(false);
+});
+['pointerup','pointercancel'].forEach(n=>pan.addEventListener(n,e=>{pts.delete(e.pointerId);lastD=0}));
+pan.addEventListener('wheel',e=>{e.preventDefault();setZoom(zoom*(e.deltaY<0?1.08:0.92))},{passive:false});
+function getBlob(){
+  return new Promise(res=>{draw(true);c.toBlob(b=>{draw(false);res(b)},'image/png')});
+}
+function needPhoto(){ if(!photo){alert('Please add your photo first');return true}
+  if(!document.getElementById('n').value.trim()){alert('Please type your name');return true} }
+
+document.getElementById('dl').onclick=async()=>{
+  if(needPhoto())return;
+  const b=await getBlob(),a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download='lydias-retreat-2026.png';
+  document.body.appendChild(a);a.click();a.remove();
+};
+document.getElementById('sh').onclick=async()=>{
+  if(needPhoto())return;
+  const b=await getBlob(),file=new File([b],'lydias-retreat-2026.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file]})}catch(e){}
+  }else alert('Sharing not supported here. Use Download flyer instead.');
+};
+</script></body></html>
